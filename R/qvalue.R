@@ -80,7 +80,7 @@
 #' @import splines ggplot2 reshape2
 #' @importFrom grid grid.newpage pushViewport viewport grid.layout
 #' @export
-qvalue <- function(p, fdr.level = NULL, pfdr = FALSE, ...) {
+qvalue <- function(p, fdr.level = NULL, pfdr = FALSE, upper = 1, ...) {
   # Argument checks
   p_in <- qvals_out <- lfdr_out <- p
   rm_na <- !is.na(p)
@@ -89,10 +89,17 @@ qvalue <- function(p, fdr.level = NULL, pfdr = FALSE, ...) {
     stop("p-values not in valid range [0, 1].")
   } else if (!is.null(fdr.level) && (fdr.level <= 0 || fdr.level > 1)) {
     stop("'fdr.level' must be in (0, 1].")
+  } else if (upper <= 0 || upper > 1) {
+    stop("ERROR: upper boundary must be within (0, 1].")
   }
 
-  # Calculate pi0 estimate
-  pi0s <- pi0est(p, ...)
+  # Remove everything above upper
+  rm_upper <- rm_na & p_in <= upper
+  only_upper <- rm_na & p_in > upper
+  p <- p_in[rm_upper]
+
+  # Calculate pi0 estimate (for visualization)
+  pi0s <- pi0est(p, upper=upper, ...)
 
   # Calculate q-value estimates
   m <- length(p)
@@ -107,10 +114,22 @@ qvalue <- function(p, fdr.level = NULL, pfdr = FALSE, ...) {
   for (i in (m - 1):1) {
     qvals[u[i]] <- min(qvals[u[i]], qvals[u[i + 1]])
   }
-  qvals_out[rm_na] <- qvals
+  qvals_out[rm_upper] <- qvals
+  qvals_out[only_upper] <- (max(qvals) * m + sum(only_upper)) / sum(rm_na)
+
   # Calculate local FDR estimates
-  lfdr <- lfdr(p = p, pi0 = pi0s$pi0, ...)
-  lfdr_out[rm_na] <- lfdr
+  lfdr <- lfdr(p = p, pi0 = pi0s$pi, ...)
+  lfdr_out[rm_upper] <- lfdr
+  # By definition local FDR should be 1 here
+  lfdr_out[only_upper] <- 1
+
+  # Correct pi0 for the number of observations
+  coef <-  sum(rm_upper) / sum(rm_na)
+  pi0s$pi0 <- pi0s$pi0 * coef
+  pi0s$pi0.lambda <- pi0s$pi0.lambda * coef
+  if (!is.null(pi0s$pi0.smooth)) {
+      pi0s$pi0.smooth <- pi0s$pi0.smooth * coef
+  }
 
   # Return results
   if (!is.null(fdr.level)) {
