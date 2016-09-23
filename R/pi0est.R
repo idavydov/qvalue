@@ -94,8 +94,8 @@ pi0est <- function(p, lambda = seq(0.05,0.95,0.05), pi0.method = c("smoother", "
              "you need at least 4 values."))
   } else if (min(lambda) < 0 || max(lambda) >= 1) {
     stop("ERROR: Lambda must be within [0, 1).")
-  } else if (upper <= 0 || upper > 1) {
-    stop("ERROR: upper boundary must be within (0, 1]."
+  } else if (upper <= max(lambda) || upper > 1) {
+    stop("ERROR: upper boundary must be within (max(lambda), 1].")
   }
   # Determines pi0
   if (ll == 1) {
