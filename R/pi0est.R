@@ -77,7 +77,7 @@
 #' @aliases pi0est
 #' @export
 pi0est <- function(p, lambda = seq(0.05,0.95,0.05), pi0.method = c("smoother", "bootstrap"),
-                   smooth.df = 3, smooth.log.pi0 = FALSE, ...) {
+                   smooth.df = 3, smooth.log.pi0 = FALSE, upper = 1, ...) {
   # Check input arguments
   rm_na <- !is.na(p)
   p <- p[rm_na]
@@ -94,15 +94,17 @@ pi0est <- function(p, lambda = seq(0.05,0.95,0.05), pi0.method = c("smoother", "
              "you need at least 4 values."))
   } else if (min(lambda) < 0 || max(lambda) >= 1) {
     stop("ERROR: Lambda must be within [0, 1).")
+  } else if (upper <= 0 || upper > 1) {
+    stop("ERROR: upper boundary must be within (0, 1]."
   }
   # Determines pi0
   if (ll == 1) {
-    pi0 <- mean(p >= lambda)/(1 - lambda)
+    pi0 <- mean(p >= lambda & p <= upper)/(min(upper, 1) - lambda)
     pi0.lambda <- pi0
     pi0 <- min(pi0, 1)
     pi0Smooth <- NULL
   } else {
-    pi0 <- sapply(lambda, function(l) mean(p >= l) / (1 - l))
+    pi0 <- sapply(lambda, function(l) mean(p >= l & p <= upper)/(min(upper, 1) - l))
     pi0.lambda <- pi0
     # Smoother method approximation
     if (pi0.method == "smoother") {
