@@ -121,8 +121,8 @@ pi0est <- function(p, lambda = seq(0.05,0.95,0.05), pi0.method = c("smoother", "
     } else if (pi0.method == "bootstrap") {
       # Bootstrap method closed form solution by David Robinson
       minpi0 <- quantile(pi0, prob = 0.1)
-      W <- sapply(lambda, function(l) sum(p >= l))
-      mse <- (W / (m ^ 2 * (1 - lambda) ^ 2)) * (1 - W / m) + (pi0 - minpi0) ^ 2
+      W <- sapply(lambda, function(l) sum(p >= l & p <= upper))
+      mse <- (W / (m ^ 2 * (min(1, upper) - lambda) ^ 2)) * (1 - W / m) + (pi0 - minpi0) ^ 2
       pi0 <- min(pi0[mse == min(mse)], 1)
       pi0Smooth <- NULL
     } else {
